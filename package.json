@@ -1,0 +1,23 @@
+{
+  "name": "ai-news-reader",
+  "version": "1.0.0",
+  "description": "AI 信息阅览网页应用 - 每日自动更新新闻与 AI 动态",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.0",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0",
+    "uuid": "^10.0.0"
+  }
+}

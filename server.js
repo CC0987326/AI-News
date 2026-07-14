@@ -17,6 +17,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const cheerio = require('cheerio'); // 移到顶部，避免每次调用时重新 require
+const rateLimit = require('express-rate-limit');
 // ============================================================
 // 配置
 // ============================================================
@@ -30,6 +32,11 @@ const MAX_HISTORY = 200;
 const CHINA_TZ_OFFSET = 8 * 60 * 60 * 1000;
 const FETCH_TIMEOUT = 6000; // 每个 RSS 请求超时 6 秒（快速）
 const FETCH_MASTER_TIMEOUT = 60000; // 整个抓取流程最大 60 秒
+
+// 统一时间窗口常量
+const FRESH_AGE_API = 72 * 60 * 60 * 1000;   // API 返回：保留 72 小时内
+const FRESH_AGE_STARTUP = 72 * 60 * 60 * 1000; // 启动清洗：保留 72 小时内（之前是24h，与API对齐）
+const FRESH_AGE_FETCH = 2 * 24 * 60 * 60 * 1000; // RSS 抓取：只保留最近 2 天
 
 // RSS 解析器
 const parser = new Parser({
@@ -433,6 +440,13 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** 原子化 JSON 写入：先写临时文件再 rename，防止崩溃导致数据损坏 */
+async function safeWriteJSON(filePath, data) {
+  const tmp = filePath + '.tmp.' + Date.now();
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2), 'utf-8');
+  await fs.rename(tmp, filePath);
+}
+
 function truncateSummary(text, maxLen = 300) {
   if (!text) return '';
   return text.length > maxLen ? text.substring(0, maxLen) + '…' : text;
@@ -515,8 +529,8 @@ async function fetchRSSFeed(feedConfig, useFallback = false) {
 
     const langHint = feedConfig.lang === 'zh' ? 'zh' : 'en';
 
-    // 过滤：只保留最近 2 天内的文章
-    const maxAge = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    // 过滤：只保留最近 2 天内的文章（使用统一常量）
+    const maxAge = Date.now() - FRESH_AGE_FETCH;
 
     return items
       .filter(item => {
@@ -595,7 +609,7 @@ async function fetchSection(section, feeds, fallbackFeeds) {
 async function scrapeBaiduHot() {
   try {
     const html = await axios.get('https://top.baidu.com/board?tab=realtime', {timeout:8000,headers:{'User-Agent':'Mozilla/5.0'}}).then(r=>r.data);
-    const $ = require('cheerio').load(html);
+    const $ = cheerio.load(html);
     const items = []; const now = new Date();
     $('.category-wrap_iQLoo .content_1YWBm').each((i, el) => {
       if (i >= 10) return;
@@ -783,7 +797,7 @@ async function saveNewsData(newsData) {
     }
   };
 
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  await safeWriteJSON(DATA_FILE, data);
   const total = Object.values(sections).reduce((sum, s) => sum + s.items.length, 0);
   console.log(`数据已保存到 ${DATA_FILE}（共 ${total} 条，新增 ${Object.values(newsData).reduce((s, arr) => s + (arr?.length || 0), 0)} 条）`);
   return data;
@@ -816,7 +830,7 @@ async function executeUpdate() {
     const current = await loadNewsData();
     if (current) {
       current.updateStatus = 'fetching';
-      await fs.writeFile(DATA_FILE, JSON.stringify(current, null, 2), 'utf-8');
+      await safeWriteJSON(DATA_FILE, current);
     }
 
     const news = await fetchAllNews();
@@ -871,7 +885,7 @@ async function executeUpdate() {
       if (current2) {
         current2.updateStatus = 'error';
         current2.lastError = '所有信源均超时或失败';
-        await fs.writeFile(DATA_FILE, JSON.stringify(current2, null, 2), 'utf-8');
+        await safeWriteJSON(DATA_FILE, current2);
       }
     }
   } catch (err) {
@@ -881,7 +895,7 @@ async function executeUpdate() {
       if (current) {
         current.updateStatus = 'error';
         current.lastError = err.message;
-        await fs.writeFile(DATA_FILE, JSON.stringify(current, null, 2), 'utf-8');
+        await safeWriteJSON(DATA_FILE, current);
       }
     } catch { /* ignore */ }
   } finally {
@@ -913,13 +927,43 @@ console.log(`   抓取超时: 每源 ${FETCH_TIMEOUT}ms / 总任务 ${FETCH_MAST
 const app = express();
 app.use(express.json());
 
-// CORS
+// CORS + 安全头
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
+  // CSP 安全头
+  res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.deepseek.com; frame-src 'none'; object-src 'none'");
   next();
 });
+
+// 请求频率限制
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 分钟窗口
+  max: 60,                  // 每分钟最多 60 次请求
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '请求过于频繁，请稍后再试' }
+});
+const translateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 20,                  // 翻译 API 更严格：每分钟 20 次
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '翻译请求过于频繁，请稍后再试' }
+});
+const refreshLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 3,                   // 刷新 API：每 5 分钟最多 3 次
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '刷新过于频繁，请等待 5 分钟后再试' }
+});
+
+// 应用限流
+app.use('/api', apiLimiter);
+app.use('/api/translate', translateLimiter);
+app.use('/api/refresh', refreshLimiter);
 
 // ============================================================
 // API 路由
@@ -931,8 +975,8 @@ app.get('/api/news', async (req, res) => {
     if (!data || !data.sections || Object.values(data.sections).every(s => !s.items?.length)) {
       return res.json({ status: 'empty', message: '尚未更新', sections: {} });
     }
-    // 实时过滤：展示最近48小时的消息
-    const timeLimit = Date.now() - 72 * 60 * 60 * 1000;
+    // 实时过滤：展示最近 72 小时的消息（使用统一常量）
+    const timeLimit = Date.now() - FRESH_AGE_API;
     const staleKW = [/南京大屠杀|Nanjing\s*massacre/i];
     const filtered = { ...data, sections: {} };
     for (const [key, section] of Object.entries(data.sections)) {
@@ -1149,7 +1193,7 @@ async function saveFavorites(items) {
   if (items.length > MAX_FAVORITES) {
     items = items.slice(items.length - MAX_FAVORITES);
   }
-  await fs.writeFile(FAVORITES_FILE, JSON.stringify(items, null, 2), 'utf-8');
+  await safeWriteJSON(FAVORITES_FILE, items);
   return items;
 }
 
@@ -1166,7 +1210,7 @@ async function saveHistory(items) {
   if (items.length > MAX_HISTORY) {
     items = items.slice(items.length - MAX_HISTORY);
   }
-  await fs.writeFile(HISTORY_FILE, JSON.stringify(items, null, 2), 'utf-8');
+  await safeWriteJSON(HISTORY_FILE, items);
   return items;
 }
 
@@ -1343,22 +1387,22 @@ app.get('/api/search', async (req, res) => {
 });
 
 // ---- 实时热点 API ----
-let hotCache = []; hotCache.time = 0;
+const hotCache = { items: [], time: 0 };
 const HOT_CACHE_TTL = 120000;
 
 app.get('/api/hot', async (req, res) => {
   try {
-    if (Date.now() - hotCache.time < HOT_CACHE_TTL && hotCache.length) {
-      return res.json(hotCache);
+    if (Date.now() - hotCache.time < HOT_CACHE_TTL && hotCache.items.length) {
+      return res.json(hotCache.items);
     }
     const [baidu, weibo] = await Promise.all([
       scrapeBaiduHot().catch(()=>[]), scrapeWeiboHot().catch(()=>[])
     ]);
-    hotCache = [...baidu, ...weibo];
+    hotCache.items = [...baidu, ...weibo];
     hotCache.time = Date.now();
-    res.json(hotCache);
+    res.json(hotCache.items);
   } catch (err) {
-    res.json(hotCache || []);
+    res.json(hotCache.items || []);
   }
 });
 
@@ -1395,7 +1439,7 @@ async function startup() {
     const data = await loadNewsData();
     if (data && data.sections) {
       let changed = false;
-      const timeLimit = Date.now() - 24 * 60 * 60 * 1000;
+      const timeLimit = Date.now() - FRESH_AGE_STARTUP;
       for (const [key, section] of Object.entries(data.sections)) {
         if (!section.items) continue;
         const before = section.items.length;
@@ -1413,8 +1457,8 @@ async function startup() {
         }
       }
       if (changed) {
-        await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
-        console.log('✅ 数据清洗完成（仅保留今日新闻）');
+        await safeWriteJSON(DATA_FILE, data);
+        console.log('✅ 数据清洗完成（仅保留 72 小时内新闻）');
       }
     }
   } catch (err) {

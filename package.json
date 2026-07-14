@@ -4,7 +4,7 @@
   "description": "AI 信息阅览网页应用 - 每日自动更新新闻与 AI 动态",
   "main": "server.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "start": "node server.js",

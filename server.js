@@ -162,49 +162,7 @@ const RSS_FEEDS = {
       }
     }
   ],
-  // 🏃 跑圈
-  chinaRunning: [
-    {
-      url: 'https://www.chinadaily.com.cn/rss/sports_rss.xml',
-      name: 'China Daily Sports',
-      reliability: 'high', lang: 'en',
-      filter: (item) => {
-        const k = ['running','marathon','athletics','race','runner','track','run'];
-        const t = (item.title+' '+(item.contentSnippet||'')).toLowerCase();
-        return k.some(w=>t.includes(w));
-      }
-    },
-    {
-      url: 'https://feeds.npr.org/1055/rss.xml',
-      name: 'NPR Sports', reliability: 'high', lang: 'en',
-      filter: (item) => {
-        const k = ['running','marathon','runner','athletics','track','race'];
-        const t = (item.title+' '+(item.contentSnippet||'')).toLowerCase();
-        return k.some(w=>t.includes(w));
-      }
-    }
-  ],
-  intlRunning: [
-    {
-      url: 'https://www.chinadaily.com.cn/rss/sports_rss.xml',
-      name: 'China Daily Sports',
-      reliability: 'high', lang: 'en',
-      filter: (item) => {
-        const k = ['running','marathon','athletics','world','champion','olymp','race'];
-        const t = (item.title+' '+(item.contentSnippet||'')).toLowerCase();
-        return k.some(w=>t.includes(w));
-      }
-    },
-    {
-      url: 'https://feeds.npr.org/1055/rss.xml',
-      name: 'NPR Sports', reliability: 'high', lang: 'en',
-      filter: (item) => {
-        const k = ['running','marathon','runner','athletics','world','champion'];
-        const t = (item.title+' '+(item.contentSnippet||'')).toLowerCase();
-        return k.some(w=>t.includes(w));
-      }
-    }
-  ],
+  // 🏃 运动健康
   health: [
     {
       url: 'https://www.chinadaily.com.cn/rss/lifestyle_rss.xml',
@@ -212,8 +170,28 @@ const RSS_FEEDS = {
       reliability: 'high',
       lang: 'en',
       filter: (item) => {
-        const k = ['health', 'fitness', 'exercise', 'workout', 'wellness', 'nutrition', 'sleep', 'diet', 'sport'];
+        const k = ['health', 'fitness', 'exercise', 'workout', 'wellness', 'nutrition', 'sleep', 'diet', 'sport', 'yoga', 'mental', 'medical'];
         const t = (item.title + ' ' + (item.contentSnippet || '')).toLowerCase();
+        return k.some(w => t.includes(w));
+      }
+    },
+    {
+      url: 'https://feeds.npr.org/1055/rss.xml',
+      name: 'NPR Health',
+      reliability: 'high', lang: 'en',
+      filter: (item) => {
+        const k = ['health', 'fitness', 'exercise', 'workout', 'wellness', 'nutrition', 'sleep', 'diet', 'sport', 'medical', 'doctor', 'patient', 'drug', 'study', 'research'];
+        const t = (item.title+' '+(item.contentSnippet||'')).toLowerCase();
+        return k.some(w=>t.includes(w));
+      }
+    },
+    {
+      url: 'https://feedx.net/rss/tech.xml',
+      name: '健康科技',
+      reliability: 'medium', lang: 'zh',
+      filter: (item) => {
+        const k = ['健康', '医疗', '运动', '健身', '营养', '睡眠', '饮食', '心理', '养生', '医学', '药物', '疫苗', '手术'];
+        const t = (item.title + ' ' + (item.contentSnippet || '') + ' ' + (item.categories || []).join(' ')).toLowerCase();
         return k.some(w => t.includes(w));
       }
     }
@@ -230,8 +208,6 @@ const FALLBACK_FEEDS = {
   ],
   aiGlobal: [],
   aiChina: [],
-  chinaRunning: [],
-  intlRunning: [],
   health: []
 };
 
@@ -354,79 +330,6 @@ const HEALTH_KNOWLEDGE_ARTICLES = [
   }
 ];
 
-// ============================================================
-// 跑步板块默认文章（确保始终有内容）
-// ============================================================
-
-const RUNNING_DEFAULT_ARTICLES = {
-  chinaRunning: [
-    {
-      id: 'run-cn-default-001',
-      title: '2026全国马拉松赛历公布 多城赛事升级',
-      summary: '中国田径协会公布了2026年全国马拉松赛历，今年全国共举办800余场路跑赛事。北京、上海、广州、厦门等城市马拉松赛事规模进一步扩大。',
-      source: '中国田径协会', sourceUrl: '',
-      publishedAt: '2026-07-10T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'zh',
-      tags: ['马拉松', '赛历'], feedName: '跑圈资讯', isDefault: true
-    },
-    {
-      id: 'run-cn-default-002',
-      title: '中国选手屡创佳绩 马拉松奥运资格之争白热化',
-      summary: '随着巴黎奥运会临近，中国马拉松选手在国际赛事中频频创造好成绩。多名选手达到奥运参赛标准，国家队选拔竞争异常激烈。',
-      source: '体坛周报', sourceUrl: '',
-      publishedAt: '2026-07-09T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'zh',
-      tags: ['奥运', '选拔'], feedName: '跑圈资讯', isDefault: true
-    },
-    {
-      id: 'run-cn-default-003',
-      title: '智能运动装备市场快速增长 国产跑鞋品牌崛起',
-      summary: '2026年上半年中国智能运动装备市场规模同比增长35%。国产跑鞋品牌在碳板跑鞋、智能运动手表等品类上持续创新，市场份额首次超过国际品牌。',
-      source: '36氪', sourceUrl: '',
-      publishedAt: '2026-07-08T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'zh',
-      tags: ['装备', '跑鞋'], feedName: '跑圈资讯', isDefault: true
-    },
-    {
-      id: 'run-cn-default-004',
-      title: '全民健身热潮持续 中国跑步人口突破8000万',
-      summary: '中国田径协会发布数据显示，全国经常参加跑步运动的人口已突破8000万。各地跑步赛事、跑团组织蓬勃发展。',
-      source: '新华社', sourceUrl: '',
-      publishedAt: '2026-07-07T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'zh',
-      tags: ['全民健身', '数据'], feedName: '跑圈资讯', isDefault: true
-    }
-  ],
-  intlRunning: [
-    {
-      id: 'run-int-default-001',
-      title: 'World Marathon Majors 2026 Season Update',
-      summary: 'The 2026 World Marathon Majors season continues with record-breaking performances across Tokyo, Boston, London, Berlin, Chicago, and New York City.',
-      source: 'World Athletics', sourceUrl: '',
-      publishedAt: '2026-07-10T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'en',
-      tags: ['Marathon', 'Majors'], feedName: 'World Running', isDefault: true
-    },
-    {
-      id: 'run-int-default-002',
-      title: 'Trail Running and Ultramarathon Participation Surges Globally',
-      summary: 'Trail running and ultramarathon participation has surged 40% globally in 2026, with new races being established across Europe, Asia, and North America.',
-      source: "Runner's World", sourceUrl: '',
-      publishedAt: '2026-07-09T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'en',
-      tags: ['Trail', 'Ultra'], feedName: 'World Running', isDefault: true
-    },
-    {
-      id: 'run-int-default-003',
-      title: 'AI and Wearable Tech Transform Running Training',
-      summary: 'AI-powered training plans, smart track real-time feedback, and wearable health monitoring are revolutionizing how runners train worldwide.',
-      source: 'MIT Technology Review', sourceUrl: '',
-      publishedAt: '2026-07-08T00:00:00.000Z',
-      reliability: 'high', type: 'fact', lang: 'zh',
-      tags: ['AI', '科技'], feedName: 'World Running', isDefault: true
-    }
-  ]
-};
 
 // ============================================================
 // 工具函数
@@ -675,7 +578,7 @@ async function fetchAllNews() {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`\n========================================`);
   console.log(`抓取完成 - ${getChinaTimeStr()} (耗时 ${elapsed}s)`);
-  console.log(`国际: ${results.international?.length || 0} | 中国: ${results.china?.length || 0} | AI全球: ${results.aiGlobal?.length || 0} | AI中国: ${results.aiChina?.length || 0} | 跑圈: 中国${results.chinaRunning?.length || 0} | 国际${results.intlRunning?.length || 0} | 健康${results.health?.length || 0}`);
+  console.log(`国际: ${results.international?.length || 0} | 中国: ${results.china?.length || 0} | AI全球: ${results.aiGlobal?.length || 0} | AI中国: ${results.aiChina?.length || 0} | 健康: ${results.health?.length || 0}`);
   console.log(`========================================\n`);
 
   return results;
@@ -760,15 +663,13 @@ async function saveNewsData(newsData) {
   const existing = await loadNewsData().catch(() => null);
 
   const sections = {};
-  const sectionKeys = ['international', 'china', 'aiGlobal', 'aiChina', 'chinaRunning', 'intlRunning', 'health'];
+  const sectionKeys = ['international', 'china', 'aiGlobal', 'aiChina', 'health'];
 
   const sectionMeta = {
     international: { title: '国际新闻', icon: '🌍' },
     china: { title: '中国新闻', icon: '🇨🇳' },
     aiGlobal: { title: 'AI 全球动态', icon: '🤖' },
     aiChina: { title: 'AI 中国动态', icon: '🇨🇳' },
-    chinaRunning: { title: '中国跑圈', icon: '🇨🇳' },
-    intlRunning: { title: '国际跑圈', icon: '🌍' },
     health: { title: '运动健康', icon: '💪' }
   };
 
@@ -793,7 +694,7 @@ async function saveNewsData(newsData) {
     sectionGroups: {
       currentAffairs: { title: '时事新闻', icon: '📰', subs: ['international', 'china'], defaultSub: 'international' },
       aiUpdates: { title: 'AI动态', icon: '🤖', subs: ['aiGlobal', 'aiChina'], defaultSub: 'aiGlobal' },
-      running: { title: '跑圈', icon: '🏃', subs: ['chinaRunning', 'intlRunning', 'health'], defaultSub: 'chinaRunning' }
+      health: { title: '运动健康', icon: '💪', subs: ['health'], defaultSub: 'health' }
     }
   };
 
@@ -841,16 +742,6 @@ async function executeUpdate() {
     const hasKnowledge = existingHealth.some(i => i.isKnowledge);
     if (!hasKnowledge) {
       news.health = [...HEALTH_KNOWLEDGE_ARTICLES, ...news.health];
-    }
-
-    // 跑步板块补充默认文章
-    for (const section of ['chinaRunning', 'intlRunning']) {
-      if (!news[section]) news[section] = [];
-      const existing = current?.sections?.[section]?.items || [];
-      const hasDefault = existing.some(i => i.isDefault);
-      if (!hasDefault && RUNNING_DEFAULT_ARTICLES[section]) {
-        news[section] = [...RUNNING_DEFAULT_ARTICLES[section], ...news[section]];
-      }
     }
 
     // 各板块默认备用文章（RSS抓不到时也有内容可看）

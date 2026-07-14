@@ -649,14 +649,12 @@ a:hover { color: var(--accent-coral); opacity: 0.85; }
           <button class="dropdown-item" data-section="aiChina" onclick="selectSubsection('aiUpdates','aiChina')">🇨🇳 AI 中国动态 <span class="count" id="count-aiChina">0</span></button>
         </div>
       </div>
-      <div class="nav-group" id="group-running">
-        <button class="nav-group-btn" onclick="toggleGroup('running')">
-          🏃 跑圈 <span class="arrow">▾</span>
+      <div class="nav-group" id="group-health">
+        <button class="nav-group-btn" onclick="toggleGroup('health')">
+          💪 运动健康 <span class="arrow">▾</span>
         </button>
-        <div class="nav-dropdown" id="drop-running">
-          <button class="dropdown-item active" data-section="chinaRunning" onclick="selectSubsection('running','chinaRunning')">🇨🇳 中国跑圈 <span class="count" id="count-chinaRunning">0</span></button>
-          <button class="dropdown-item" data-section="intlRunning" onclick="selectSubsection('running','intlRunning')">🌍 国际跑圈 <span class="count" id="count-intlRunning">0</span></button>
-          <button class="dropdown-item" data-section="health" onclick="selectSubsection('running','health')">💪 运动健康 <span class="count" id="count-health">0</span></button>
+        <div class="nav-dropdown" id="drop-health">
+          <button class="dropdown-item active" data-section="health" onclick="selectSubsection('health','health')">💪 运动健康 <span class="count" id="count-health">0</span></button>
         </div>
       </div>
       <div class="nav-actions">
@@ -786,17 +784,17 @@ let autoRefreshTimer = null;
 const GROUPS = {
   currentAffairs: { title: '时事新闻', icon: '📰', subs: ['international','china'], defaultSub: 'international' },
   aiUpdates: { title: 'AI动态', icon: '🤖', subs: ['aiGlobal','aiChina'], defaultSub: 'aiGlobal' },
-  running: { title: '跑圈', icon: '🏃', subs: ['chinaRunning','intlRunning','health'], defaultSub: 'chinaRunning' }
+  health: { title: '运动健康', icon: '💪', subs: ['health'], defaultSub: 'health' }
 };
 const SUB_NAMES = {
   international: '国际新闻', china: '中国新闻',
   aiGlobal: 'AI 全球动态', aiChina: 'AI 中国动态',
-  chinaRunning: '中国跑圈', intlRunning: '国际跑圈', health: '运动健康'
+  health: '运动健康'
 };
 const SUB_ICONS = {
   international: '🌍', china: '🇨🇳',
   aiGlobal: '🤖', aiChina: '🇨🇳',
-  chinaRunning: '🇨🇳', intlRunning: '🌍', health: '💪'
+  health: '💪'
 };
 
 let activeView = 'news'; // news | favorites | history | search
@@ -1655,15 +1653,6 @@ async function loadSampleData() {
         { id: 's-ai-cn-1', title: '百度文心一言 4.5 发布', summary: '百度发布了文心一言 4.5 版本。', source: '36氪', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'zh', tags: ['百度'], fetchDate: todayStr },
         { id: 's-ai-cn-2', title: '清华大学发布AI芯片「天机3号」', summary: '清华大学发布了新一代AI芯片。', source: 'AI科技评论', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'zh', tags: ['芯片'], fetchDate: todayStr }
       ]},
-      chinaRunning: { title: '中国跑圈', icon: '🇨🇳', items: [
-        { id: 's-run-cn-1', title: '2026北京马拉松定档11月3日 报名即将启动', summary: '北京马拉松组委会宣布2026年赛事定于11月3日举行，预计参赛人数3万人，报名将于8月启动。', source: '新浪体育', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'zh', tags: ['马拉松', '北马'], fetchDate: todayStr },
-        { id: 's-run-cn-2', title: '中国选手在东京马拉松创赛季最佳成绩', summary: '中国马拉松选手在东京马拉松比赛中以2小时06分完成比赛，创造了个人赛季最好成绩。', source: '体坛周报', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'zh', tags: ['马拉松', '成绩'], fetchDate: todayStr },
-        { id: 's-run-cn-3', title: '上海世纪公园跑道上新 智能跑道系统启用', summary: '上海世纪公园升级了智能跑道系统，可实时监测跑者的配速、心率和步频数据。', source: '澎湃新闻', publishedAt: yesterday.toISOString(), reliability: 'medium', type: 'fact', lang: 'zh', tags: ['跑道', '智能'], fetchDate: todayStr }
-      ]},
-      intlRunning: { title: '国际跑圈', icon: '🌍', items: [
-        { id: 's-run-int-1', title: 'Kipchoge to Run Berlin Marathon in September Comeback', summary: 'Eliud Kipchoge has announced he will return to the Berlin Marathon in September, aiming to reclaim his world record.', source: 'World Athletics', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'en', tags: ['Kipchoge', 'Marathon'], fetchDate: todayStr },
-        { id: 's-run-int-2', title: 'Boston Marathon Adds New Wheelchair Division for 2027', summary: 'The Boston Athletic Association announced a new wheelchair division starting in 2027.', source: 'Runner\'s World', publishedAt: yesterday.toISOString(), reliability: 'high', type: 'fact', lang: 'en', tags: ['Boston'], fetchDate: todayStr }
-      ]},
       health: { title: '运动健康', icon: '💪', items: [
         { id: 's-health-1', title: '跑步的正确姿势与呼吸方法', summary: '跑步时保持身体直立微前倾，步幅不宜过大。呼吸采用"三步一吸、两步一呼"的节奏。', source: '运动健康知识库', publishedAt: '2026-06-01T00:00:00.000Z', reliability: 'high', type: 'fact', lang: 'zh', tags: ['跑步姿势', '入门'], isKnowledge: true, fetchDate: '2026-06-01' },
         { id: 's-health-2', title: '跑者营养补充指南：吃出好成绩', summary: '跑前2小时以碳水为主，跑后30分钟补充蛋白质和碳水的黄金窗口期。', source: '运动健康知识库', publishedAt: '2026-06-02T00:00:00.000Z', reliability: 'high', type: 'fact', lang: 'zh', tags: ['营养', '饮食'], isKnowledge: true, fetchDate: '2026-06-02' },
@@ -1674,7 +1663,7 @@ async function loadSampleData() {
     sectionGroups: {
       currentAffairs: { title: '时事新闻', icon: '📰', subs: ['international','china'], defaultSub: 'international' },
       aiUpdates: { title: 'AI动态', icon: '🤖', subs: ['aiGlobal','aiChina'], defaultSub: 'aiGlobal' },
-      running: { title: '跑圈', icon: '🏃', subs: ['chinaRunning','intlRunning','health'], defaultSub: 'chinaRunning' }
+      health: { title: '运动健康', icon: '💪', subs: ['health'], defaultSub: 'health' }
     }
   };
 
